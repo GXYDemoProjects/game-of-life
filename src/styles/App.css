@@ -1,0 +1,15 @@
+.cell {
+  float: left;
+  width: 10px;
+  height: 10px;
+  border: 1px solid #000;
+  background: #FFF;
+}
+
+.live {
+  background: #4D78CC;
+}
+.game-board {
+  width: 600px;
+  height: 600px;
+}
