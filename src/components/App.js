@@ -3,71 +3,50 @@ import PropTypes from 'prop-types';
 import '../styles/App.css';
 
 
-function Cell(props) {
-  let cellProps = {
-    width: props.width.toString(),
-    height: props.width.toString(),
-    x: (props.positionX * props.width).toString(),
-    y: (props.positionY * props.width).toString(),
-  };
-  // live blue, dead black
-  let cellStyle = {
-    fill: props.cellState === 1 ? '#4D78CC' : '#FFF',
-    strokeWidth: '1px',
-    stroke: '#000'
-  };
-  let handleClick = function() {
-    props.handleClick(props.positionX, props.positionY);
-  };
-  return (
-    <rect {...cellProps} onClick={handleClick} style={cellStyle}/>
-  );
+class Cell extends React.PureComponent {
+
+  handleClick() {
+    this.props.handleClick(this.props.index);
+  }
+  render() {
+    const dim = this.props.dim;
+    const index = this.props.index;
+    const height = this.props.height;
+    const x = Number.parseInt(index/height, 10);
+    const y = index - x * height;
+    const cellStyle = {
+      fill: this.props.cellState === 1 ? '#4D78CC' : '#FFF',
+      strokeWidth: '1px',
+      stroke: '#000'
+    };
+    return (
+      <rect width={dim} height={dim} x={x * dim} y={y * dim} onClick={() => this.handleClick()} style={cellStyle}/>
+    );
+  }
 }
 Cell.propTypes = {
-  width: PropTypes.number.isRequired,
-  positionX: PropTypes.number.isRequired,
-  positionY: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+  index: PropTypes.number.isRequired,
   cellState: PropTypes.number.isRequired, // 0 is dead, 1 is live
   handleClick: PropTypes.func.isRequired,
 };
 
 
-class GameBoard extends React.Component {
+class GameBoard extends React.PureComponent {
   constructor() {
     super();
     this.dim = 10;
   }
 
-  constructBoard() {
-    const boardWidth = this.props.boardWidth;
-    const boardHeight = this.props.boardHeight;
-    const boardCells = [];
-    for(let i = 0; i < boardWidth; i += 1) {
-      for(let j = 0; j < boardHeight; j += 1) {
-        const cellProps = {
-          width: this.dim,
-          positionX: i,
-          positionY: j,
-          cellState: this.props.cellStates[i][j], // 0 is dead, 1 is live
-          handleClick: this.props.handleClick,
-          key: i * boardWidth + j,
-        };
-        boardCells.push(
-          <Cell {...cellProps}/>
-        );
-      }
-    }
-    return boardCells;
-  }
-
-
-
   render() {
-    const pixelWidth = this.props.boardWidth * this.dim;
-    const pixelHeight = this.props.boardHeight * this.dim;
+    const dim = this.dim;
+    const height = this.props.boardHeight;
+    const pixelWidth = this.props.boardWidth * dim;
+    const pixelHeight = this.props.boardHeight * dim;
+    const cellStates = this.props.cellStates;
     return (
       <svg width={pixelWidth.toString()} height={pixelHeight.toString()}>
-        {this.constructBoard()}
+        {cellStates.map((cellState, index) => <Cell dim={dim} height={height} cellState={cellState} index={index} key={index} handleClick={this.props.handleClick}/>)}
       </svg>
     );
   }
@@ -80,8 +59,8 @@ GameBoard.propTypes = {
 
 
 class App extends React.Component {
-  constructor() {
-    super();
+  constructor(props) {
+    super(props);
     this.state = {
       cellStates : [],
       boardWidth : 50,
@@ -99,18 +78,15 @@ class App extends React.Component {
     const cellStates = [];
     const width = this.state.boardWidth;
     const height = this.state.boardHeight;
-    for(let i = 0; i < width; i += 1) {
-      cellStates.push([]);
-      for(let j = 0; j < height; j += 1) {
-        cellStates[i].push(Math.round(Math.random()));
-      }
+    for(let i = 0; i < width * height; i += 1) {
+      cellStates.push(Math.round(Math.random()));
     }
     return cellStates;
   }
 
-  cellClick(positionX, positionY) {
-    const cellStates = this.state.cellStates;
-    cellStates[positionX][positionY] = 1;
+  cellClick(index) {
+    const cellStates = this.state.cellStates.concat();
+    cellStates[index] = 1;
     this.setState({cellStates: cellStates});
   }
   render() {
@@ -121,5 +97,7 @@ class App extends React.Component {
     );
   }
 }
+
+
 
 export default App;
