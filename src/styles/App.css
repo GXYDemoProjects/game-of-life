@@ -1,3 +1,55 @@
+.App {
+  margin: 20px;
+}
+
+.left-side {
+  margin: 0 20px;
+  float:left;
+  width: 350px;
+}
+.control-row {
+  margin: 15px 0;
+}
+.label {
+  margin-right: 10px;
+  vertical-align: top;
+}
+.value {
+  vertical-align: top;
+ 
+  margin-left: 10px;
+}
+
+.btn {
+  cursor: pointer;
+  width: 60px;
+  height: 30px;
+  background: #4D78CC;
+  border: none;
+  margin: 0 10px;
+  border-radius: 3px;
+  transition: all 0.5s linear;
+}
+
+.btn:hover {
+  opacity: 0.8;
+}
+
+.btn-game {
+  background: #E68473;
+}
+
+
+
+
+
+
+
+
+.right-side {
+  margin-left: 400px;
+}
+
 .cell {
   float: left;
   width: 10px;

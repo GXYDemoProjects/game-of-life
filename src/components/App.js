@@ -48,6 +48,88 @@ GameBoard.propTypes = {
   cellStates: PropTypes.array,
 };
 
+function CheckLists(props) {
+
+  return (
+    <div className="control-row">
+      <span className="label">{`${props.title}:`}</span>
+      {Array(props.length).fill(0).map((value, index) => {
+        return (
+        <label htmlFor="props.name">
+          <input type="checkbox" name="props.name" defaultChecked={props.defaultChecked.indexOf(index+1)>-1}/>
+          <span>{index + 1}</span>
+        </label>
+        );
+      })}
+    </div>
+  );
+}
+CheckLists.propTypes = {
+  length: PropTypes.length,
+  title: PropTypes.title,
+  name: PropTypes.name,
+};
+
+class Slider extends React.PureComponent {
+  constructor(props) {
+    super(props);
+    this.state={
+      value: this.props.default
+    };
+  }
+  handleChange(event) {
+    event.preventDefault();
+    // this.props.change();
+    this.setState({
+      value: event.target.value
+    });
+  }
+  render() {
+    return (
+      <div className="control-row">
+        <label className="label" htmlFor={this.props.name}>{`${this.props.title}:`}</label>
+        <input type="range" min={this.props.min} max={this.props.max} name={this.props.name} id={this.props.name}  defaultValue={this.props.default} onChange={e => this.handleChange(e)}/>
+        <span className="value">{this.state.value}</span>
+      </div>
+    );
+  }
+}
+Slider.propTypes = {
+  name: PropTypes.string,
+  title: PropTypes.string,
+  min: PropTypes.number,
+  max: PropTypes.number,
+  default: PropTypes.number,
+};
+function SideControl(props) {
+  
+  return (
+    <div className="side">
+      <h2>Game of Life</h2>
+      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Alias, vero?</p>
+      <h4>Settings</h4>
+      <form>
+        <Slider name="width" title="Width" min={1} max={100} default={50}/>
+        <Slider name="height" title="Height" min={1} max={100} default={50}/>
+        <CheckLists length={8} title="Birth Rule" name="birth-rule" defaultChecked={[3]}/>
+        <CheckLists length={8} title="Survival Rule" name="survival-rule" defaultChecked={[2,3]}/>
+        <div className="speed control-row">
+          <span className="label">Speed:</span>
+          <button className="btn slow">Slow</button>
+          <button className="btn medium">Medium</button>
+          <button className="btn fast">Fast</button>
+        </div>
+        <div className="control-row">
+        <span className="label">Control:</span>
+          <button className="btn btn-game clear">Clear</button>
+          <button className="btn btn-game random">Random</button>
+          <button className="btn btn-game toggle-game">{props.gameState+'test'}</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 
 class App extends React.Component {
   constructor(props) {
@@ -83,7 +165,12 @@ class App extends React.Component {
   render() {
     return (
       <div className="App">
-        <GameBoard boardWidth={this.state.boardWidth} boardHeight={this.state.boardHeight} handleClick={this.cellClick} cellStates={this.state.cellStates}/>
+        <div className="left-side">
+          <SideControl />
+        </div>
+        <div className="right-side">
+          <GameBoard boardWidth={this.state.boardWidth} boardHeight={this.state.boardHeight} handleClick={this.cellClick} cellStates={this.state.cellStates}/>
+        </div>
       </div>    
     );
   }
