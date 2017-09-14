@@ -6,6 +6,7 @@ import '../styles/App.css';
 class Cell extends React.PureComponent {
 
   handleClick() {
+    if(this.props.cellState === 1) return;
     this.props.handleClick(this.props.index);
   }
   render() {
@@ -16,7 +17,6 @@ class Cell extends React.PureComponent {
   }
 }
 Cell.propTypes = {
-  height: PropTypes.number.isRequired,
   index: PropTypes.number.isRequired,
   cellState: PropTypes.number.isRequired, // 0 is dead, 1 is live
   handleClick: PropTypes.func.isRequired,
@@ -24,20 +24,19 @@ Cell.propTypes = {
 
 
 class GameBoard extends React.PureComponent {
-  constructor() {
-    super();
-    // this.dim = 10;
-  }
 
   render() {
-    // const dim = this.dim;
-    const height = this.props.boardHeight;
-    // const pixelWidth = this.props.boardWidth * dim;
-    // const pixelHeight = this.props.boardHeight * dim;
+    const dim = 10;
+    const pixelWidth = String(this.props.boardWidth * dim) + 'px';
+    const pixelHeight = String(this.props.boardHeight * dim) + 'px';
+    const widthStyle = {width:pixelWidth};
+    const style = {width:pixelWidth, height:pixelHeight};
     const cellStates = this.props.cellStates;
     return (
-      <div className = "game-board">
-        {cellStates.map((cellState, index) => <Cell cellState={cellState} index={index} key={index} handleClick={this.props.handleClick}/>)}
+      <div className="board-wrapper" style={widthStyle}>
+        <div className = "game-board" style={style}>
+          {cellStates.map((cellState, index) => <Cell cellState={cellState} index={index} key={index} handleClick={this.props.handleClick}/>)}
+        </div>
       </div>
     );
   }
@@ -45,9 +44,20 @@ class GameBoard extends React.PureComponent {
 GameBoard.propTypes = {
   boardWidth: PropTypes.number.isRequired,
   boardHeight: PropTypes.number.isRequired,
-  cellStates: PropTypes.array,
+  cellStates: PropTypes.array.isRequired,
 };
 
+function GenerationsDisplay(props) {
+  return (
+    <div className="show">
+      <span className='label'>Generations:</span>
+      <span className="generations">{props.generations}</span>
+    </div>
+  );
+}
+GenerationsDisplay.propTypes = {
+  generations: PropTypes.number.isRequired,
+};
 function CheckLists(props) {
 
   return (
@@ -55,7 +65,7 @@ function CheckLists(props) {
       <span className="label">{`${props.title}:`}</span>
       {Array(props.length).fill(0).map((value, index) => {
         return (
-        <label htmlFor="props.name">
+        <label htmlFor="props.name" key={index} >
           <input type="checkbox" name="props.name" defaultChecked={props.defaultChecked.indexOf(index+1)>-1}/>
           <span>{index + 1}</span>
         </label>
@@ -65,88 +75,129 @@ function CheckLists(props) {
   );
 }
 CheckLists.propTypes = {
-  length: PropTypes.length,
-  title: PropTypes.title,
-  name: PropTypes.name,
+  length: PropTypes.number.isRequired,
+  title: PropTypes.string.isRequired,
+  name: PropTypes.string.isRequired,
 };
 
 class Slider extends React.PureComponent {
-  constructor(props) {
-    super(props);
-    this.state={
-      value: this.props.default
-    };
-  }
+
   handleChange(event) {
     event.preventDefault();
-    // this.props.change();
-    this.setState({
-      value: event.target.value
-    });
+    this.props.change(Number.parseInt(event.target.value,10));
   }
   render() {
     return (
       <div className="control-row">
         <label className="label" htmlFor={this.props.name}>{`${this.props.title}:`}</label>
         <input type="range" min={this.props.min} max={this.props.max} name={this.props.name} id={this.props.name}  defaultValue={this.props.default} onChange={e => this.handleChange(e)}/>
-        <span className="value">{this.state.value}</span>
+        <span className="value">{this.props.value}</span>
       </div>
     );
   }
 }
 Slider.propTypes = {
-  name: PropTypes.string,
-  title: PropTypes.string,
-  min: PropTypes.number,
-  max: PropTypes.number,
-  default: PropTypes.number,
+  name: PropTypes.string.isRequired,
+  title: PropTypes.string.isRequired,
+  min: PropTypes.number.isRequired,
+  max: PropTypes.number.isRequired,
+  default: PropTypes.number.isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+  change: PropTypes.func.isRequired,
 };
 function SideControl(props) {
-  
+  function handleClick(event) {
+    event.preventDefault();
+    const value = event.target.value;
+    if(value === 'Start') {
+      // props.gameStart();
+      event.target.value = 'stop';
+      event.target.textContent = 'Stop';
+    } 
+    if(value === 'Stop') {
+      // props.gameStop();
+      event.target.value = 'start';
+      event.target.textContent = 'Start';
+    }
+  }
   return (
     <div className="side">
       <h2>Game of Life</h2>
-      <p>Lorem ipsum dolor sit amet, consectetur adipisicing elit. Alias, vero?</p>
+      <GenerationsDisplay generations={100} />
       <h4>Settings</h4>
       <form>
-        <Slider name="width" title="Width" min={1} max={100} default={50}/>
-        <Slider name="height" title="Height" min={1} max={100} default={50}/>
-        <CheckLists length={8} title="Birth Rule" name="birth-rule" defaultChecked={[3]}/>
-        <CheckLists length={8} title="Survival Rule" name="survival-rule" defaultChecked={[2,3]}/>
+        <Slider name="width" title="Width" min={1} max={props.maxWidth} default={props.defaultWidth} value={props.width} change={props.widthSet}/>
+        <Slider name="height" title="Height" min={1} max={props.maxHeight} default={props.defaultHeight} value={props.height} change={props.heightSet}/>
+        <CheckLists length={8} title="Birth Rule" name="birth-rule" defaultChecked={props.defaultBirthRule}/>
+        <CheckLists length={8} title="Survival Rule" name="survival-rule" defaultChecked={props.defaultSurviveRule}/>
         <div className="speed control-row">
           <span className="label">Speed:</span>
-          <button className="btn slow">Slow</button>
-          <button className="btn medium">Medium</button>
-          <button className="btn fast">Fast</button>
+          <input type="radio" name="speed" value='slow'defaultChecked={props.defaultSpeed === 'show'} /> Slow
+          <input type="radio" name="speed" value='medium'defaultChecked={props.defaultSpeed === 'medium'} /> Medium
+          <input type="radio" name="speed" value='fast'defaultChecked={props.defaultSpeed === 'fast'} /> Fast
         </div>
         <div className="control-row">
-        <span className="label">Control:</span>
+          <span className="label game-control">Control:</span>
           <button className="btn btn-game clear">Clear</button>
           <button className="btn btn-game random">Random</button>
-          <button className="btn btn-game toggle-game">{props.gameState+'test'}</button>
+          <button className="btn btn-game toggle-game" value="start" onClick={e => handleClick(e)}>Start</button>
         </div>
       </form>
     </div>
   );
 }
 
+SideControl.propTypes ={
+  maxWidth: PropTypes.number.isRequired,
+  maxHeight: PropTypes.number.isRequired,
+  defaultWidth: PropTypes.number.isRequired,
+  defaultHeight: PropTypes.number.isRequired,
+  defaultBirthRule: PropTypes.array.isRequired,
+  defaultSurviveRule: PropTypes.array.isRequired,
+  width: PropTypes.number.isRequired,
+  height: PropTypes.number.isRequired,
+  widthSet: PropTypes.func.isRequired,
+  heightSet:PropTypes.func.isRequired,
+  speedSet:PropTypes.func.isRequired,
+  birthRuleSet:PropTypes.func.isRequired,
+  surviveRuleSet:PropTypes.func.isRequired,
+  gameStart:PropTypes.func.isRequired,
+  gameStop:PropTypes.func.isRequired,
+  gameRandom:PropTypes.func.isRequired,
+};
+
 
 class App extends React.Component {
   constructor(props) {
     super(props);
+    this.getMaxDimension();
+    this.defaultBirthRule = [2];
+    this.defaultSurviveRule = [2,3];
+    this.defaultSpeed = 'medium';
     this.state = {
       cellStates : [],
-      boardWidth : 50,
-      boardHeight : 50,
+      boardWidth : this.defaultWidth,
+      boardHeight : this.defaultHeight,
     };
     this.cellClick = this.cellClick.bind(this);
+    this.widthSet = this.widthSet.bind(this);
+    this.heightSet = this.heightSet.bind(this);
   }
-
   componentWillMount() {
     this.setState({
       cellStates: this.getRandomStates(),
     });
   }
+  getMaxDimension() {
+    this.maxWidth = Math.floor((window.innerWidth - 400 - 40 - 20)/10);
+    this.maxHeight = Math.floor((window.innerHeight - 20 - 40 - 20)/10);
+    // this.defaultWidth = this.maxWidth >= 50 ? 50 : Math.floor(this.maxWidth/2);
+    // this.defaultHeight = this.maxHeight >= 50 ? 50 : Math.floor(this.maxHeight/2);
+    this.defaultWidth = 4;
+    this.defaultHeight = 4;
+  }
+
   getRandomStates() {
     const cellStates = [];
     const width = this.state.boardWidth;
@@ -162,13 +213,83 @@ class App extends React.Component {
     cellStates[index] = 1;
     this.setState({cellStates: cellStates});
   }
+
+  widthSet(width) {
+    const prevWidth = this.state.boardWidth;
+    const prevHeight = this.state.boardHeight;
+    if(width === prevWidth) return;
+    const prevStates = this.state.cellStates;
+    let cellStates = [];
+    if(width > prevWidth) {
+      for(let i = 0; i < prevHeight; i += 1) 
+      {
+        console.log(i);
+        const newColumn = prevStates.slice(i*prevWidth, (i+1)*prevWidth).concat(Array(width-prevWidth).fill(0));
+        cellStates = cellStates.concat(newColumn);
+      }
+    }
+    if(width < prevWidth) {
+      for(let i = 0; i < prevHeight; i += 1) 
+      {
+        console.log(i);
+        const newColumn = prevStates.slice(i*prevWidth, i*prevWidth+width);
+        cellStates = cellStates.concat(newColumn);
+      }
+    }
+    this.setState({
+      cellStates: cellStates,
+      boardWidth: width,
+    });
+  }
+  heightSet(height){
+    const prevWidth = this.state.boardWidth;
+    const prevHeight = this.state.boardHeight;
+    if(height === prevHeight) return;
+    const prevStates = this.state.cellStates;
+    let cellStates;
+    if(height > prevHeight) {
+      cellStates = prevStates.concat(Array((height - prevHeight)*prevWidth).fill(0));
+    }
+    if(height < prevHeight) {
+      cellStates = prevStates.slice(0, height * prevWidth);
+    }
+    this.setState({
+      cellStates: cellStates,
+      boardHeight: height,
+    });
+  }
+  speedSet(){
+
+  }
+  birthRuleSet(){
+
+  }
+  surviveRuleSet(){
+
+  }
+  gameStart(){
+
+  }
+  gameStop(){
+
+  }
+  gameRandom(){
+
+  }
   render() {
+    const dim = 10;    
+    const pixelWidth = String(this.state.boardWidth * dim) + 'px';
+    const widthStyle = {width: pixelWidth};
+    const boardWidth = this.state.boardWidth;
+    const boardHeight = this.state.boardHeight;
+    const {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed} = this;
+    const controlProps = {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed};
     return (
       <div className="App">
         <div className="left-side">
-          <SideControl />
+          <SideControl {...controlProps} width={boardWidth} height={boardHeight} widthSet={this.widthSet} heightSet={this.heightSet}/>
         </div>
-        <div className="right-side">
+        <div className="right-side" style={widthStyle}>
           <GameBoard boardWidth={this.state.boardWidth} boardHeight={this.state.boardHeight} handleClick={this.cellClick} cellStates={this.state.cellStates}/>
         </div>
       </div>    
