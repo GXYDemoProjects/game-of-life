@@ -60,13 +60,17 @@ GenerationsDisplay.propTypes = {
 };
 function CheckLists(props) {
 
+  let handleChange = e => {
+    e.preventDefault();
+    props.ruleSet(Number.parseInt(e.target.value, 10));
+  };
   return (
     <div className="control-row">
       <span className="label">{`${props.title}:`}</span>
       {Array(props.length).fill(0).map((value, index) => {
         return (
         <label htmlFor="props.name" key={index} >
-          <input type="checkbox" name="props.name" defaultChecked={props.defaultChecked.indexOf(index+1)>-1}/>
+          <input type="checkbox" name="props.name" value={index+1} defaultChecked={props.defaultChecked.indexOf(index+1)>-1} onChange={e => handleChange(e)}/>
           <span>{index + 1}</span>
         </label>
         );
@@ -108,44 +112,52 @@ Slider.propTypes = {
 function SideControl(props) {
   function toggleGame(event) {
     event.preventDefault();
-    const value = event.target.value;
+    const value = event.target.textContent;
     if(value === 'Start') {
-      // props.gameStart();
+      props.gameStart();
       event.target.value = 'stop';
       event.target.textContent = 'Stop';
     } 
     if(value === 'Stop') {
-      // props.gameStop();
+      props.gameStop();
       event.target.value = 'start';
       event.target.textContent = 'Start';
     }
   }
+  let speedSet = speed => {
+    return e => {
+      e.preventDefault();
+      props.speedSet(speed);
+    };
+  };
 
-  let gameRandom = e => {
-    e.preventDefault();
-    props.gameRandom();
+  let controlGame = type => {
+    return e => {
+      e.preventDefault();
+      props[type]();
+    };
   };
   return (
     <div className="side">
       <h2>Game of Life</h2>
-      <GenerationsDisplay generations={100} />
+      <GenerationsDisplay generations={props.generations} />
       <h4>Settings</h4>
       <form>
         <Slider name="width" title="Width" min={1} max={props.maxWidth} default={props.defaultWidth} value={props.width} change={props.widthSet}/>
         <Slider name="height" title="Height" min={1} max={props.maxHeight} default={props.defaultHeight} value={props.height} change={props.heightSet}/>
-        <CheckLists length={8} title="Birth Rule" name="birth-rule" defaultChecked={props.defaultBirthRule}/>
-        <CheckLists length={8} title="Survival Rule" name="survival-rule" defaultChecked={props.defaultSurviveRule}/>
+        <CheckLists length={8} title="Birth Rule" name="birth-rule" defaultChecked={props.defaultBirthRule} ruleSet={props.ruleSet('birthRule')}/>
+        <CheckLists length={8} title="Survival Rule" name="survival-rule" defaultChecked={props.defaultSurviveRule} ruleSet={props.ruleSet('surviveRule')}/>
         <div className="speed control-row">
           <span className="label">Speed:</span>
-          <input type="radio" name="speed" value='slow'defaultChecked={props.defaultSpeed === 'show'} /> Slow
-          <input type="radio" name="speed" value='medium'defaultChecked={props.defaultSpeed === 'medium'} /> Medium
-          <input type="radio" name="speed" value='fast'defaultChecked={props.defaultSpeed === 'fast'} /> Fast
+          <input type="radio" name="speed" value='slow'defaultChecked={props.defaultSpeed === 'show'} onChange={e => speedSet('slow')(e)} /> Slow
+          <input type="radio" name="speed" value='medium'defaultChecked={props.defaultSpeed === 'medium'}  onChange={e => speedSet('medium')(e)} /> Medium
+          <input type="radio" name="speed" value='fast'defaultChecked={props.defaultSpeed === 'fast'}  onChange={e => speedSet('fast')(e)} /> Fast
         </div>
         <div className="control-row">
           <span className="label game-control">Control:</span>
-          <button className="btn btn-game clear">Clear</button>
-          <button className="btn btn-game random" onClick={e => gameRandom(e)}>Random</button>
-          <button className="btn btn-game toggle-game" value="start" onClick={e => toggleGame(e)}>Start</button>
+          <button className="btn btn-game clear" onClick={e => controlGame('gameClear')(e)}>Clear</button>
+          <button className="btn btn-game random" onClick={e => controlGame('gameRandom')(e)}>Random</button>
+          <button className="btn btn-game toggle-game" value="start" onClick={e => toggleGame(e)}>{props.gameState==='start'?'Stop':'Start'}</button>
         </div>
       </form>
     </div>
@@ -161,11 +173,12 @@ SideControl.propTypes ={
   defaultSurviveRule: PropTypes.array.isRequired,
   width: PropTypes.number.isRequired,
   height: PropTypes.number.isRequired,
+  generations: PropTypes.number.isRequired,
+  gameState: PropTypes.string.isRequired,
   widthSet: PropTypes.func.isRequired,
   heightSet:PropTypes.func.isRequired,
   speedSet:PropTypes.func.isRequired,
-  birthRuleSet:PropTypes.func.isRequired,
-  surviveRuleSet:PropTypes.func.isRequired,
+  ruleSet:PropTypes.func.isRequired,
   gameStart:PropTypes.func.isRequired,
   gameStop:PropTypes.func.isRequired,
   gameRandom:PropTypes.func.isRequired,
@@ -176,7 +189,7 @@ class App extends React.Component {
   constructor(props) {
     super(props);
     this.getMaxDimension();
-    this.defaultBirthRule = [2];
+    this.defaultBirthRule = [3];
     this.defaultSurviveRule = [2,3];
     this.defaultSpeed = 'medium';  //slow, medium, fast
     this.timerId = 0;
@@ -187,7 +200,8 @@ class App extends React.Component {
       generations: 0,
       speed: this.defaultSpeed, //slow, medium, fast
       birthRule: this.defaultBirthRule,
-      survivalRule: this.defaultSurviveRule,
+      surviveRule: this.defaultSurviveRule,
+      gameState: 'stop',
     };
     this.cellClick = this.cellClick.bind(this);
     this.widthSet = this.widthSet.bind(this);
@@ -195,20 +209,27 @@ class App extends React.Component {
     this.gameStart = this.gameStart.bind(this);
     this.gameStop = this.gameStop.bind(this);
     this.gameRandom = this.gameRandom.bind(this);
+    this.gameClear = this.gameClear.bind(this);
     this.speedSet = this.speedSet.bind(this); 
-    this.birthRuleSet = this.birthRuleSet.bind(this);
-    this.surviveRuleSet = this.surviveRuleSet.bind(this);
+    this.ruleSet = this.ruleSet.bind(this);
+    this.updateStates = this.updateStates.bind(this);
+    this.updateCellState = this.updateCellState.bind(this);
   }
   componentWillMount() {
     this.setState({
       cellStates: this.getRandomStates(),
     });
+    // this.setState({
+    //   cellStates: [0,0,0,1,1,1,0,0,0],
+    // });
   }
   getMaxDimension() {
     this.maxWidth = Math.floor((window.innerWidth - 400 - 40 - 20)/10);
     this.maxHeight = Math.floor((window.innerHeight - 20 - 40 - 20)/10);
     this.defaultWidth = this.maxWidth >= 50 ? 50 : Math.floor(this.maxWidth/2);
     this.defaultHeight = this.maxHeight >= 50 ? 50 : Math.floor(this.maxHeight/2);
+    // this.defaultWidth = 3; 
+    // this.defaultHeight = 3;
   }
 
   getRandomStates() {
@@ -271,24 +292,107 @@ class App extends React.Component {
       boardHeight: height,
     });
   }
-  speedSet(){
 
+  updateCellState(states, index, width, height) {
+    let liveCnt = 0;
+    const posY = Number.parseInt(index/width, 10);
+    const posX = index - width * posY;
+    for(let i=posX-1; i<posX+2; i++) {
+      for(let j=posY-1; j<posY+2; j++) {
+        if(i > -1 && i < width && j > -1 && j < height && (i!==posX || j!==posY)) {
+          const cellState = states[j*width + i];
+          liveCnt += (cellState === 1 ? 1 : 0);
+        } 
+      }
+    }
+    let curState = states[index];
+    const birthRule = this.state.birthRule; 
+    const surviveRule = this.state.surviveRule;
+    if(birthRule.indexOf(liveCnt) !== -1) {
+      curState = 1;
+    } else if(curState === 1 && surviveRule.indexOf(liveCnt) !== -1) {
+      curState = 1;
+    } else {
+      curState = 0;
+    }
+    return curState;
   }
-  birthRuleSet(){
+  updateStates() {
+    let equal = true;
+    const cellStates = this.state.cellStates;
+    const width = this.state.boardWidth;
+    const height = this.state.boardHeight;
+    const len = cellStates.length;
+    const newStates = new Array(len);
+    for(let i=0; i<len; i++) {
+      const newState = this.updateCellState(cellStates, i, width, height);
+      newStates[i] = newState;
+      if(equal && newState !== cellStates[i]) {
+        equal = false;
+      }
+    }
+    const generations = this.state.generations + 1;
+    if(equal === true) {
+      this.gameStop();
+      return;
+    }
+    this.setState({
+      cellStates: newStates,
+      generations: generations,
+    });
+  }
+  speedSet(speed){
+    this.gameStop();
+    this.setState({
+      speed: speed
+    });
+    this.gameStart();
+  }
 
+  ruleSet(type){
+    return value => {
+      const rule = this.state[type];
+      const index = rule.indexOf(value);
+      if(index !== -1) {
+        rule.splice(index, 1);
+      } else {
+        rule.push(value).sort((v1,v2) => v1 - v2 < 0);
+      }
+      const newRule = {};
+      newRule[type] = rule;
+      this.setState({newRule});
+    };
   }
-  surviveRuleSet(){
 
-  }
   gameStart(){
-
+    const speed = this.state.speed;
+    const interval = (speed === 'slow' ? 500 : (speed === 'medium' ? 250 : 100));
+    this.timerId = setInterval(this.updateStates, interval);
+    this.setState({gameState: 'start'});
   }
   gameStop(){
-
+    if(this.timerId) {
+      clearInterval(this.timerId);
+    }
+    this.setState({gameState: 'stop'});
+  }
+  gameClear() {
+    this.gameStop();
+    const len = this.state.boardWidth * this.state.boardHeight;
+    const newStates = new Array(len).fill(0);
+    this.setState({
+      cellStates: newStates,
+      generations: 0,
+    });   
   }
   gameRandom(){
+    this.gameStop();
     let cellStates = this.getRandomStates();
-    this.setState({cellStates: cellStates});
+    this.setState({
+      cellStates: cellStates,
+      generations: 0,
+    });
+    // this.gameStart();
   }
   render() {
     const dim = 10;    
@@ -296,14 +400,16 @@ class App extends React.Component {
     const widthStyle = {width: pixelWidth};
     const boardWidth = this.state.boardWidth;
     const boardHeight = this.state.boardHeight;
+    const generations = this.state.generations;
+    const gameState = this.state.gameState;
     const {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed} = this;
     const controlProps = {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed};
-    const {widthSet, heightSet, gameStart, gameStop, gameRandom, speedSet, birthRuleSet, surviveRuleSet} = this;
-    const funcProps = {widthSet, heightSet, gameStart, gameStop, gameRandom, speedSet, birthRuleSet, surviveRuleSet};
+    const {widthSet, heightSet, gameStart, gameStop, gameRandom, gameClear, speedSet, ruleSet} = this;
+    const funcProps = {widthSet, heightSet, gameStart, gameStop, gameRandom, gameClear, speedSet, ruleSet};
     return (
       <div className="App">
         <div className="left-side">
-          <SideControl {...controlProps} width={boardWidth} height={boardHeight} {...funcProps} />
+          <SideControl {...controlProps} gameState={gameState} width={boardWidth} height={boardHeight} generations={generations} {...funcProps} />
         </div>
         <div className="right-side" style={widthStyle}>
           <GameBoard boardWidth={this.state.boardWidth} boardHeight={this.state.boardHeight} handleClick={this.cellClick} cellStates={this.state.cellStates}/>
