@@ -102,12 +102,11 @@ Slider.propTypes = {
   min: PropTypes.number.isRequired,
   max: PropTypes.number.isRequired,
   default: PropTypes.number.isRequired,
-  width: PropTypes.number.isRequired,
-  height: PropTypes.number.isRequired,
+  value: PropTypes.number.isRequired,
   change: PropTypes.func.isRequired,
 };
 function SideControl(props) {
-  function handleClick(event) {
+  function toggleGame(event) {
     event.preventDefault();
     const value = event.target.value;
     if(value === 'Start') {
@@ -121,6 +120,11 @@ function SideControl(props) {
       event.target.textContent = 'Start';
     }
   }
+
+  let gameRandom = e => {
+    e.preventDefault();
+    props.gameRandom();
+  };
   return (
     <div className="side">
       <h2>Game of Life</h2>
@@ -140,8 +144,8 @@ function SideControl(props) {
         <div className="control-row">
           <span className="label game-control">Control:</span>
           <button className="btn btn-game clear">Clear</button>
-          <button className="btn btn-game random">Random</button>
-          <button className="btn btn-game toggle-game" value="start" onClick={e => handleClick(e)}>Start</button>
+          <button className="btn btn-game random" onClick={e => gameRandom(e)}>Random</button>
+          <button className="btn btn-game toggle-game" value="start" onClick={e => toggleGame(e)}>Start</button>
         </div>
       </form>
     </div>
@@ -174,15 +178,26 @@ class App extends React.Component {
     this.getMaxDimension();
     this.defaultBirthRule = [2];
     this.defaultSurviveRule = [2,3];
-    this.defaultSpeed = 'medium';
+    this.defaultSpeed = 'medium';  //slow, medium, fast
+    this.timerId = 0;
     this.state = {
-      cellStates : [],
-      boardWidth : this.defaultWidth,
-      boardHeight : this.defaultHeight,
+      cellStates: [],
+      boardWidth: this.defaultWidth,
+      boardHeight: this.defaultHeight,
+      generations: 0,
+      speed: this.defaultSpeed, //slow, medium, fast
+      birthRule: this.defaultBirthRule,
+      survivalRule: this.defaultSurviveRule,
     };
     this.cellClick = this.cellClick.bind(this);
     this.widthSet = this.widthSet.bind(this);
     this.heightSet = this.heightSet.bind(this);
+    this.gameStart = this.gameStart.bind(this);
+    this.gameStop = this.gameStop.bind(this);
+    this.gameRandom = this.gameRandom.bind(this);
+    this.speedSet = this.speedSet.bind(this); 
+    this.birthRuleSet = this.birthRuleSet.bind(this);
+    this.surviveRuleSet = this.surviveRuleSet.bind(this);
   }
   componentWillMount() {
     this.setState({
@@ -192,10 +207,8 @@ class App extends React.Component {
   getMaxDimension() {
     this.maxWidth = Math.floor((window.innerWidth - 400 - 40 - 20)/10);
     this.maxHeight = Math.floor((window.innerHeight - 20 - 40 - 20)/10);
-    // this.defaultWidth = this.maxWidth >= 50 ? 50 : Math.floor(this.maxWidth/2);
-    // this.defaultHeight = this.maxHeight >= 50 ? 50 : Math.floor(this.maxHeight/2);
-    this.defaultWidth = 4;
-    this.defaultHeight = 4;
+    this.defaultWidth = this.maxWidth >= 50 ? 50 : Math.floor(this.maxWidth/2);
+    this.defaultHeight = this.maxHeight >= 50 ? 50 : Math.floor(this.maxHeight/2);
   }
 
   getRandomStates() {
@@ -274,7 +287,8 @@ class App extends React.Component {
 
   }
   gameRandom(){
-
+    let cellStates = this.getRandomStates();
+    this.setState({cellStates: cellStates});
   }
   render() {
     const dim = 10;    
@@ -284,10 +298,12 @@ class App extends React.Component {
     const boardHeight = this.state.boardHeight;
     const {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed} = this;
     const controlProps = {maxWidth, maxHeight, defaultWidth, defaultHeight, defaultBirthRule, defaultSurviveRule, defaultSpeed};
+    const {widthSet, heightSet, gameStart, gameStop, gameRandom, speedSet, birthRuleSet, surviveRuleSet} = this;
+    const funcProps = {widthSet, heightSet, gameStart, gameStop, gameRandom, speedSet, birthRuleSet, surviveRuleSet};
     return (
       <div className="App">
         <div className="left-side">
-          <SideControl {...controlProps} width={boardWidth} height={boardHeight} widthSet={this.widthSet} heightSet={this.heightSet}/>
+          <SideControl {...controlProps} width={boardWidth} height={boardHeight} {...funcProps} />
         </div>
         <div className="right-side" style={widthStyle}>
           <GameBoard boardWidth={this.state.boardWidth} boardHeight={this.state.boardHeight} handleClick={this.cellClick} cellStates={this.state.cellStates}/>
