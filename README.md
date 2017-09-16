@@ -4,5 +4,5 @@ A project for [FreeCodeCampus challenges](https://www.freecodecamp.org/challenge
 
 This project was bootstrapped with [Create React App](https://github.com/facebookincubator/create-react-app).
 
-[Demo]()
+[Demo](https://guoxiaoyang.github.io/game-of-life/)
 
